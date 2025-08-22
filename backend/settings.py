@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'projects',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -83,12 +84,8 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv("POSTGRES_DB", "pms_db"),
-        'USER': os.getenv("POSTGRES_USER", "pms_user"),
-        'PASSWORD': os.getenv("POSTGRES_PASSWORD", "pms_pass").strip('"'),
-        'HOST': os.getenv("POSTGRES_HOST", "localhost"),
-        'PORT': os.getenv("POSTGRES_PORT", "5432"),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / "db.sqlite3",   # database file in your project root
     }
 }
 
