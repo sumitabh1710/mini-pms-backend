@@ -5,6 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.core.validators import validate_email
 from django.db.models import Q, Count, Case, When, IntegerField
+from django.utils.text import slugify
 
 
 # ----------------------
@@ -45,10 +46,13 @@ class OrganizationType(DjangoObjectType):
         fields = "__all__"
 
     def resolve_project_count(self, info):
-        return self.project_count
+        # Use related_name if defined in your Project model
+        return self.projects.count() if hasattr(self, "projects") else self.project_set.count()
 
     def resolve_active_projects_count(self, info):
-        return self.active_projects_count
+        if hasattr(self, "projects"):
+            return self.projects.filter(status="ACTIVE").count()
+        return self.project_set.filter(status="ACTIVE").count()
 
 
 class ProjectType(DjangoObjectType):
@@ -127,7 +131,7 @@ class Query(graphene.ObjectType):
     organization = graphene.Field(OrganizationType, slug=graphene.String(required=True))
     projects = graphene.List(
         ProjectType, 
-        organization_slug=graphene.String(required=True),
+        organization_slug=graphene.String(required=False),
         status=graphene.String(),
         search=graphene.String()
     )
@@ -160,18 +164,22 @@ class Query(graphene.ObjectType):
         except Organization.DoesNotExist:
             return None
 
-    def resolve_projects(self, info, organization_slug, status=None, search=None):
-        queryset = Project.objects.filter(organization__slug=organization_slug).select_related('organization').prefetch_related('tasks')
+    def resolve_projects(self, info, organization_slug=None, status=None, search=None):
+        queryset = Project.objects.all().select_related('organization').prefetch_related('tasks')
         
+        if organization_slug:
+            queryset = queryset.filter(organization__slug=organization_slug)
+
         if status:
             queryset = queryset.filter(status=status)
-        
+
         if search:
             queryset = queryset.filter(
                 Q(name__icontains=search) | Q(description__icontains=search)
             )
-        
+
         return queryset
+
 
     def resolve_project(self, info, id):
         try:
@@ -248,7 +256,7 @@ class Query(graphene.ObjectType):
 # ----------------------
 class CreateOrganizationInput(graphene.InputObjectType):
     name = graphene.String(required=True)
-    slug = graphene.String(required=True)
+    # slug = graphene.String(required=True)
     contact_email = graphene.String(required=True)
 
 
@@ -288,8 +296,10 @@ class CreateOrganization(graphene.Mutation):
             validate_email(input.contact_email)
         except ValidationError:
             errors.append("Invalid email format")
-        
-        if Organization.objects.filter(slug=input.slug).exists():
+
+        slug = slugify(input.name.lower())
+
+        if Organization.objects.filter(slug=slug).exists():
             errors.append("Organization with this slug already exists")
         
         if errors:
@@ -299,7 +309,7 @@ class CreateOrganization(graphene.Mutation):
             with transaction.atomic():
                 org = Organization.objects.create(
                     name=input.name,
-                    slug=input.slug,
+                    slug=slug,
                     contact_email=input.contact_email
                 )
                 return CreateOrganization(organization=org, success=True, errors=[])

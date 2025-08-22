@@ -1,0 +1,22 @@
+# Core
+Django>=4.2,<5.0
+djangorestframework>=3.14.0
+
+# API Documentation
+drf-yasg>=1.21.5
+
+# Environment Variables
+python-dotenv>=1.0.1
+
+# Validation & Utilities
+django-cors-headers>=4.4.0
+Pillow>=10.3.0           # For image fields if needed
+
+# Testing
+pytest>=8.3.0
+pytest-django>=4.8.0
+
+graphene-django>=3.0.0
+
+# Optional: For async support
+channels>=4.1.0

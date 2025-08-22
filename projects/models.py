@@ -32,11 +32,12 @@ class Organization(models.Model):
 
     @property
     def project_count(self):
-        return self.project_set.count()
+        return self.projects.count()
 
     @property
     def active_projects_count(self):
-        return self.project_set.filter(status='ACTIVE').count()
+        return self.projects.filter(status='ACTIVE').count()
+
 
 
 class Project(models.Model):
